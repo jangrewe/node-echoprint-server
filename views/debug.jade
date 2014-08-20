@@ -59,11 +59,13 @@ html(lang="en")
         
         for (var i = 0; i < res.matches.length; i++) {
           var match = res.matches[i];
-          var trackTD = $(document.createElement('td'));
+          var trackIdTD = $(document.createElement('td'));
+          var trackNameTD = $(document.createElement('td'));
           
           var trackName = match.track || '[Unnamed Track]';
           
-          trackTD.html(match.track_id + '<br>"' + artistName + ' - ' + trackName + '"');
+          trackIdTD.html(match.track_id);
+          trackNameTD.html(trackName);
           
           console.log(match.contributors.length + ' / ' + res.queryLen);
           var pctMatched = match.contributors.length / res.queryLen;
@@ -82,7 +84,8 @@ html(lang="en")
           }).appendTo(graphsTD);
           
           var tr = $(document.createElement('tr'));
-          tr.append(trackTD);
+          tr.append(trackIdTD);
+          tr.append(trackNameTD);
           tr.append(graphsTD);
           
           $('#matches').append(tr);
