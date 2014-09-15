@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS `codes` (
   `track_id` MEDIUMINT NOT NULL,
   PRIMARY KEY (`code`,`time`,`track_id`),
   FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON DELETE CASCADE
-) DEFAULT CHARSET=utf8;
+) DEFAULT CHARSET=utf8 ENGINE=TokuDB COMPRESSION=tokudb_lzma;
