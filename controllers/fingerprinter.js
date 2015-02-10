@@ -309,8 +309,9 @@ function getActualScore(fp, match, threshold, slop) {
  */
 function ingest(fp, callback) {
   var MAX_DURATION = 60 * 60 * 4;
+  var skipLookup = fp.skipLookup;
   
-  log.info('Ingesting track "' + fp.track + '", ' + fp.length + ' seconds, ' + fp.codes.length + ' codes (' + fp.codever + ')');
+  log.info('Ingesting track "' + fp.track + '", ' + fp.length + ' seconds, ' + fp.codes.length + ' codes, skipLookup ' + fp.skipLookup + ' (' + fp.codever + ')');
   
   if (!fp.codes.length || typeof fp.length !== 'number' || !fp.codever)
     return callback('Missing required track fields', null);  
@@ -322,18 +323,16 @@ function ingest(fp, callback) {
     return callback('Missing or invalid "version" field', null);
   if (!fp.track)
     return callback('Missing or invalid "track" field', null);
-  if (!fp.skipLookup)
-    fp.skipLookup = false;
 
   fp = cutFPLength(fp, MAX_DURATION);
   
   // Acquire a lock while modifying the database
   gMutex.lock(function() {
 
-    if (fp.skipLookup == true) {
+    if (skipLookup == true) {
 
       // Track does not exist in the database yet
-      log.debug('Skipping Track lookup, adding to database.');
+      log.debug('Skipping track lookup, adding to database.');
       createTrack();
 
     } else {
