@@ -49,6 +49,7 @@ exports.ingest = function(req, res) {
   var codeVer = req.body.version;
   var length = req.body.length;
   var track = req.body.track;
+  var skipLookup = req.body.skipLookup;
   
   if (!code)
     return server.respond(req, res, 500, { error: 'Missing "code" field' });
@@ -60,6 +61,8 @@ exports.ingest = function(req, res) {
     return server.respond(req, res, 500, { error: 'Missing or invalid "length" field' });
   if (!track)
     return server.respond(req, res, 500, { error: 'Missing "track" field' });
+  if (!skipLookup)
+    skipLookup = false;
   
   fingerprinter.decodeCodeString(code, function(err, fp) {
     if (err || !fp.codes.length) {
@@ -70,6 +73,7 @@ exports.ingest = function(req, res) {
     fp.codever = codeVer;
     fp.track = track;
     fp.length = parseInt(length);
+    fp.skipLookup = skipLookup;
     
     fingerprinter.ingest(fp, function(err, result) {
       if (err) {

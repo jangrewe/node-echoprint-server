@@ -322,65 +322,80 @@ function ingest(fp, callback) {
     return callback('Missing or invalid "version" field', null);
   if (!fp.track)
     return callback('Missing or invalid "track" field', null);
+  if (!fp.skipLookup)
+    fp.skipLookup = false;
 
   fp = cutFPLength(fp, MAX_DURATION);
   
   // Acquire a lock while modifying the database
   gMutex.lock(function() {
-    // Check if this track already exists in the database
-    bestMatchForQuery(fp, config.code_threshold, function(err, res) {
-      if (err) {
-        gMutex.release();
-        return callback('Query failed: ' + err, null);
-      }
-      
-      if (res.success) {
-        var match = res.match;
-        log.info('Found existing match with status ' + res.status +
-          ', track ' + match.track_id + ' ("' + match.track + '")');
 
-        var finished = function(match) {
-          // Success
-          log.info('Track update complete');
+    if (fp.skipLookup == true) {
+
+      // Track does not exist in the database yet
+      log.debug('Skipping Track lookup, adding to database.');
+      createTrack();
+
+    } else {
+
+      // Check if this track already exists in the database
+      bestMatchForQuery(fp, config.code_threshold, function(err, res) {
+        if (err) {
           gMutex.release();
-          callback(null, { track_id: match.track_id, track: match.track });
-        };
+          return callback('Query failed: ' + err, null);
+        }
         
-        if (!match.track && fp.track) {
-          // Existing track is unnamed but we have a name now. Update the track
-          log.debug('Updating track name to "' + fp.track + '"');
-          database.updateTrack(match.track_id, fp.track,
-            function(err)
-          {
-            if (err) { gMutex.release(); return callback(err, null); }
-            match.track = fp.track;
+        if (res.success) {
+          var match = res.match;
+          log.info('Found existing match with status ' + res.status +
+            ', track ' + match.track_id + ' ("' + match.track + '")');
+
+          var finished = function(match) {
+            // Success
+            log.info('Track update complete');
+            gMutex.release();
+            callback(null, { track_id: match.track_id, track: match.track });
+          };
+          
+          if (!match.track && fp.track) {
+            // Existing track is unnamed but we have a name now. Update the track
+            log.debug('Updating track name to "' + fp.track + '"');
+            database.updateTrack(match.track_id, fp.track,
+              function(err)
+            {
+              if (err) { gMutex.release(); return callback(err, null); }
+              match.track = fp.track;
+              gMutex.release();
+              callback(null, { track_id: match.track_id, track: fp.track });
+            });
+          } else {
+            log.debug('Skipping track name update');
             gMutex.release();
             callback(null, { track_id: match.track_id, track: fp.track });
-          });
+          }
+
         } else {
-          log.debug('Skipping track name update');
-          gMutex.release();
-          callback(null, { track_id: match.track_id, track: fp.track });
+          // Track does not exist in the database yet
+          log.debug('Track does not exist in the database yet, status ' + res.status);
+          createTrack();
         }
 
-      } else {
-        // Track does not exist in the database yet
-        log.debug('Track does not exist in the database yet, status ' + res.status);
-        createTrack();
-      }
-      
-      // Function for creating a new track
-      function createTrack() {
-        database.addTrack(fp, function(err, trackID) {
-          if (err) { gMutex.release(); return callback(err, null); }
-          
-          // Success
-          log.info('Created track ' + trackID + ' ("' + fp.track + '")');
-          gMutex.release();
-          callback(null, { track_id: trackID, track: fp.track });
-        });
-      }
-    });
+      });
+
+    } // if skipLookup
+
+    // Function for creating a new track
+    function createTrack() {
+      database.addTrack(fp, function(err, trackID) {
+        if (err) { gMutex.release(); return callback(err, null); }
+        
+        // Success
+        log.info('Created track ' + trackID + ' ("' + fp.track + '")');
+        gMutex.release();
+        callback(null, { track_id: trackID, track: fp.track });
+      });
+    }
+
   });
 }
 
