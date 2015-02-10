@@ -329,7 +329,7 @@ function ingest(fp, callback) {
   // Acquire a lock while modifying the database
   gMutex.lock(function() {
 
-    if (skipLookup == true) {
+    if (skipLookup == "true") {
 
       // Track does not exist in the database yet
       log.debug('Skipping track lookup, adding to database.');
